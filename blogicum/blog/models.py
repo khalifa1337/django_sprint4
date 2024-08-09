@@ -169,7 +169,7 @@ class Comment(PublishedAndCreateModel):
     comment_post - пост к которому относится комментарий (связь с моделью Post)
     author - автор комментария (связь с моделью User)
     """
-    
+
     text = models.TextField('Текст комментария')
     comment_post = models.ForeignKey(
         Post,

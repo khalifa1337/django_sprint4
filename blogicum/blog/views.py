@@ -81,7 +81,8 @@ class Index(ListView):
 
 
 class PostCreateView(PostMixin, LoginRequiredMixin, CreateView):
-    """ CBV для формы создания поста."""
+    """CBV для формы создания поста."""
+
     template_name = 'blog/create.html'
 
     def form_valid(self, form):
@@ -90,7 +91,7 @@ class PostCreateView(PostMixin, LoginRequiredMixin, CreateView):
 
 
 class PostDetailView(CachedObjectMixin, DetailView):
-    """ CBV для получения подробной информации о посте."""
+    """CBV для получения подробной информации о посте."""
 
     model = Post
     queryset = Post.objects.select_related('author', 'location', 'category')
@@ -119,7 +120,8 @@ class PostDetailView(CachedObjectMixin, DetailView):
 
 
 class PostUpdateView(PostMixin, OnlyAuthorMixin, UpdateView):
-    """ CBV для редактирования поста."""
+    """CBV для редактирования поста."""
+
     template_name = 'blog/create.html'
 
     def handle_no_permission(self):
@@ -143,7 +145,8 @@ class PostUpdateView(PostMixin, OnlyAuthorMixin, UpdateView):
 
 
 class PostDeleteView(CachedObjectMixin, OnlyAuthorMixin, DeleteView):
-    """ CBV для удаления поста."""
+    """CBV для удаления поста."""
+
     model = Post
     template_name = 'blog/create.html'
     success_url = reverse_lazy('blog:index')
@@ -151,6 +154,7 @@ class PostDeleteView(CachedObjectMixin, OnlyAuthorMixin, DeleteView):
 
 class CategoryListView(CachedObjectMixin, DetailView, MultipleObjectMixin):
     """CBV для отображения странциы отдельной категории"""
+
     model = Category
     context_object_name = 'category'
     paginate_by = ELEMENTS_TO_SHOW
@@ -241,6 +245,7 @@ class CommentDeleteView(CommentMixin, OnlyAuthorMixin, DeleteView):
 
 class UserProfileView(DetailView, MultipleObjectMixin):
     """CBV дял отображения профиля пользователя."""
+
     model = User
     template_name = 'blog/profile.html'
     context_object_name = 'profile'
