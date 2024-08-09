@@ -16,3 +16,7 @@ class PostQuerySet(models.QuerySet):
     def category_published(self):
         """Фильтрация доступности категории."""
         return self.filter(category__is_published=True)
+
+    def ordered_by_pub_date(self):
+        """Сортировка постов по дате публикации (по убыванию)."""
+        return self.order_by('-pub_date')

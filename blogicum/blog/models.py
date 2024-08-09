@@ -1,10 +1,9 @@
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.urls import reverse
 
 from core.constants import STANDART_MAX_LENGHT
 from core.models import PublishedAndCreateModel
-from django.urls import reverse
-
 
 from .managers import PublishedPostManager
 from .querysets import PostQuerySet
@@ -142,6 +141,13 @@ class Post(PublishedAndCreateModel):
     )
     objects = PostQuerySet.as_manager()
     published = PublishedPostManager()
+    """
+    Объекты Post, которые:
+    1) Имеют актуальную дату
+    2) Опубликованы
+    3) Имеют опубликованную категорию
+    4) Отсортированы по дате публикации
+    """
 
     class Meta(PublishedAndCreateModel.Meta):
         verbose_name = 'публикация'
@@ -149,7 +155,6 @@ class Post(PublishedAndCreateModel):
         ordering = ('created_at',)
 
     def get_absolute_url(self):
-        # С помощью функции reverse() возвращаем URL объекта.
         return reverse('blog:profile', kwargs={'username': self.author})
 
     def __str__(self):
@@ -157,6 +162,14 @@ class Post(PublishedAndCreateModel):
 
 
 class Comment(PublishedAndCreateModel):
+    """
+    Модель для хранения данных о комментариях.
+    Содержит поля:
+    text - содержимое комментария
+    comment_post - пост к которому относится комментарий (связь с моделью Post)
+    author - автор комментария (связь с моделью User)
+    """
+    
     text = models.TextField('Текст комментария')
     comment_post = models.ForeignKey(
         Post,

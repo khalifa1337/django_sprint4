@@ -12,4 +12,5 @@ class PublishedPostManager(models.Manager):
             .with_actual_data()
             .published()
             .category_published()
+            .ordered_by_pub_date()
         )

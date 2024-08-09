@@ -1,13 +1,18 @@
 from django import forms
-from django.core.exceptions import ValidationError
-from .models import Post, Comment
+from django.contrib.auth import get_user_model
+
+from .models import Comment, Post
+
+User = get_user_model()
 
 
 class PostForm(forms.ModelForm):
+    """
+    Форма для постов на основе модели Post.
+    """
+
     class Meta:
-        # Указываем модель, на основе которой должна строиться форма.
         model = Post
-        # Указываем, что надо отобразить все поля.
         exclude = ('author',)
         widgets = {
             'pub_date': forms.DateInput(attrs={'type': 'date'})
@@ -15,15 +20,9 @@ class PostForm(forms.ModelForm):
 
 
 class CommentForm(forms.ModelForm):
-
+    """
+    Форма для комментариев на основе модели Comment.
+    """
     class Meta:
-        # Указываем модель, на основе которой должна строиться форма.
         model = Comment
-        # Указываем, что надо отобразить все поля.
         fields = ('text',)
-
-# class CongratulationForm(forms.ModelForm):
-
-#     class Meta:
-#         model = Congratulation
-#         fields = ('text',)
