@@ -7,9 +7,7 @@ User = get_user_model()
 
 
 class PostForm(forms.ModelForm):
-    """
-    Форма для постов на основе модели Post.
-    """
+    """Форма для постов на основе модели Post."""
 
     class Meta:
         model = Post
@@ -20,9 +18,8 @@ class PostForm(forms.ModelForm):
 
 
 class CommentForm(forms.ModelForm):
-    """
-    Форма для комментариев на основе модели Comment.
-    """
+    """Форма для комментариев на основе модели Comment."""
+
     class Meta:
         model = Comment
         fields = ('text',)

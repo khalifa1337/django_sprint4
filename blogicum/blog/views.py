@@ -272,7 +272,7 @@ class UserProfileView(DetailView, MultipleObjectMixin):
         )
         """
         Так как список не всегда идентичен тому, что используется на других
-        страницах, то, если я правильно понимаю, имеющийся менеджер 
+        страницах, то, если я правильно понимаю, имеющийся менеджер
         тут может не подойти.
         """
         context = super().get_context_data(object_list=object_list, **kwargs)
