@@ -1,9 +1,9 @@
 from django.db import models
 
 
-class PublishedAndCreateModel(models.Model):
+class PublishedModel(models.Model):
     """
-    Абстрактная модель. Добвляет общие для моеделей поля:
+    Абстрактная модель. Добвляет общее для моделей поле:
     is_published (обязательное) - для хранения информации о том, нужно ли
     выводить публикацию;
     created_at - для хранения информации о том, когда была добавлена запись
@@ -16,6 +16,17 @@ class PublishedAndCreateModel(models.Model):
         verbose_name='Опубликовано',
         help_text='Снимите галочку, чтобы скрыть публикацию.'
     )
+
+    class Meta:
+        abstract = True
+
+
+class CreatedAtModel(models.Model):
+    """
+    Абстрактная модель. Добвляет общее для моделей поле:
+    created_at - для хранения информации о том, когда была добавлена запись
+    """
+
     created_at = models.DateTimeField(
         null=False,
         blank=False,

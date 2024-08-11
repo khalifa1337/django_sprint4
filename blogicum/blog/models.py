@@ -1,9 +1,10 @@
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.urls import reverse
+from django.utils.html import mark_safe
 
 from core.constants import STANDART_MAX_LENGHT
-from core.models import PublishedAndCreateModel
+from core.models import PublishedModel, CreatedAtModel
 
 from .managers import PublishedPostManager
 from .querysets import PostQuerySet
@@ -11,7 +12,7 @@ from .querysets import PostQuerySet
 User = get_user_model()
 
 
-class Category(PublishedAndCreateModel):
+class Category(PublishedModel, CreatedAtModel):
     """
     Модель для хранения данных о категориях.
     Содержит поля:
@@ -44,7 +45,7 @@ class Category(PublishedAndCreateModel):
         )
     )
 
-    class Meta(PublishedAndCreateModel.Meta):
+    class Meta(CreatedAtModel.Meta):
         verbose_name = 'категория'
         verbose_name_plural = 'Категории'
 
@@ -52,7 +53,7 @@ class Category(PublishedAndCreateModel):
         return self.title
 
 
-class Location(PublishedAndCreateModel):
+class Location(PublishedModel, CreatedAtModel):
     """
     Модель для хранения данных о местоположениях.
     Содержит поля:
@@ -68,7 +69,7 @@ class Location(PublishedAndCreateModel):
         verbose_name='Название места'
     )
 
-    class Meta(PublishedAndCreateModel.Meta):
+    class Meta(CreatedAtModel.Meta):
         verbose_name = 'местоположение'
         verbose_name_plural = 'Местоположения'
 
@@ -76,7 +77,7 @@ class Location(PublishedAndCreateModel):
         return self.name
 
 
-class Post(PublishedAndCreateModel):
+class Post(PublishedModel, CreatedAtModel):
     """
     Модель для хранения данных о постах.
     Содержит поля:
@@ -115,7 +116,6 @@ class Post(PublishedAndCreateModel):
         on_delete=models.CASCADE,
         null=False,
         blank=False,
-        related_name='posts',
         verbose_name='Автор публикации'
     )
     location = models.ForeignKey(
@@ -123,7 +123,6 @@ class Post(PublishedAndCreateModel):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='posts',
         verbose_name='Местоположение'
     )
     category = models.ForeignKey(
@@ -131,7 +130,6 @@ class Post(PublishedAndCreateModel):
         on_delete=models.SET_NULL,
         null=True,
         blank=False,
-        related_name='posts',
         verbose_name='Категория'
     )
     image = models.ImageField(
@@ -149,19 +147,35 @@ class Post(PublishedAndCreateModel):
     4) Отсортированы по дате публикации
     """
 
-    class Meta(PublishedAndCreateModel.Meta):
+    class Meta(CreatedAtModel.Meta):
         verbose_name = 'публикация'
         verbose_name_plural = 'Публикации'
-        ordering = ('created_at',)
+        default_related_name = 'posts'
+
+    def image_tag(self):
+        if self.image:
+            return mark_safe(
+                '<img src="/%s" width="150" height="150" />' % (self.image)
+            )
+        else:
+            return "Нет изображения"
+
+    def comment_count(self):
+        return self.comment.count()
 
     def get_absolute_url(self):
-        return reverse('blog:profile', kwargs={'username': self.author})
+        return reverse(
+            'blog:profile', kwargs={'username': self.author.username}
+        )
+
+    comment_count.short_description = 'Количество комментариев'  # type: ignore
+    image_tag.short_description = 'Изображение'  # type: ignore
 
     def __str__(self):
         return self.title
 
 
-class Comment(PublishedAndCreateModel):
+class Comment(CreatedAtModel):
     """
     Модель для хранения данных о комментариях.
     Содержит поля:
@@ -174,9 +188,19 @@ class Comment(PublishedAndCreateModel):
     comment_post = models.ForeignKey(
         Post,
         on_delete=models.CASCADE,
-        related_name='comment',
+        verbose_name='Комментируемый пост'
     )
-    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name='Автор комментария'
+    )
 
-    class Meta:
+    class Meta(CreatedAtModel.Meta):
+        verbose_name = 'комментарий'
+        verbose_name_plural = 'Комментарии'
+        default_related_name = 'comment'
         ordering = ('created_at',)
+
+    def __str__(self):
+        return self.text
