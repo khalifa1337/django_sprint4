@@ -152,24 +152,10 @@ class Post(PublishedModel, CreatedAtModel):
         verbose_name_plural = 'Публикации'
         default_related_name = 'posts'
 
-    def image_tag(self):
-        if self.image:
-            return mark_safe(
-                '<img src="/%s" width="150" height="150" />' % (self.image)
-            )
-        else:
-            return "Нет изображения"
-
-    def comment_count(self):
-        return self.comment.count()
-
     def get_absolute_url(self):
         return reverse(
             'blog:profile', kwargs={'username': self.author.username}
         )
-
-    comment_count.short_description = 'Количество комментариев'  # type: ignore
-    image_tag.short_description = 'Изображение'  # type: ignore
 
     def __str__(self):
         return self.title
@@ -199,7 +185,7 @@ class Comment(CreatedAtModel):
     class Meta(CreatedAtModel.Meta):
         verbose_name = 'комментарий'
         verbose_name_plural = 'Комментарии'
-        default_related_name = 'comment'
+        default_related_name = 'comments'
         ordering = ('created_at',)
 
     def __str__(self):

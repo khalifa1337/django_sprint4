@@ -113,7 +113,7 @@ class PostDetailView(CachedObjectMixin, DetailView):
         context = dict(
             **super().get_context_data(**kwargs),
             form=CommentForm(),
-            comments=self.object.comment.select_related('author')
+            comments=self.object.comments.select_related('author')
         )
         return context
 
@@ -150,13 +150,16 @@ class PostUpdateView(PostMixin, OnlyAuthorMixin, UpdateView):
         )
 
 
-class PostDeleteView(CachedObjectMixin, OnlyAuthorMixin, DeleteView):
+class PostDeleteView(
+    CachedObjectMixin,
+    OnlyAuthorMixin,
+    PostMixin,
+    DeleteView
+):
     """CBV для удаления поста."""
 
-    model = Post
     template_name = 'blog/create.html'
     pk_url_kwarg = 'post_id'
-    form_class = PostForm
     success_url = reverse_lazy('blog:index')
 
 
@@ -175,12 +178,11 @@ class CategoryListView(CachedObjectMixin, DetailView, MultipleObjectMixin):
             is_published=True)
 
     def get_queryset(self):
+        category = self.model.objects.get(slug=self.kwargs['category_slug'])
         return (
-            Post
-            .published
+            category.posts(manager='published')
             .with_comment_count()
             .select_related('author', 'category', 'location')
-            .filter(category__slug=self.kwargs['category_slug'])
         )
 
     def get_context_data(self, **kwargs):
