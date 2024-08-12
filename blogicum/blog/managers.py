@@ -16,4 +16,5 @@ class PublishedPostManager(models.Manager):
         )
 
     def with_comment_count(self):
+        """Метод для получения числа комментариев для админ-панели"""
         return self.get_queryset().with_comment_count()

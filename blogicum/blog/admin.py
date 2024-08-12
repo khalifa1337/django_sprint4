@@ -33,7 +33,12 @@ class PostAdmin(admin.ModelAdmin):
         'text',
         'image'
     )
-    list_display = ('__str__',) + common_list + ('image_tag',) + ('comment_count',)
+    list_display = (
+        ('__str__',)
+        + common_list
+        + ('image_tag',)
+        + ('comment_count',)
+    )
     list_editable = common_list
 
 

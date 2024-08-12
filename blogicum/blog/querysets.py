@@ -23,4 +23,5 @@ class PostQuerySet(models.QuerySet):
         return self.order_by('-pub_date')
 
     def with_comment_count(self):
+        """Аннотирование комментариев"""
         return self.annotate(comment_count=Count('comment'))

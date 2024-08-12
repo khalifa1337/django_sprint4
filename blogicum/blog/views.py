@@ -1,7 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.db.models import Count, Q
-from django.db.models.query import QuerySet
+from django.db.models import Q
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.urls import reverse, reverse_lazy
@@ -171,7 +170,7 @@ class CategoryListView(CachedObjectMixin, DetailView, MultipleObjectMixin):
 
     def get_object(self, queryset=None):
         return get_object_or_404(
-            Category,
+            self.model,
             slug=self.kwargs['category_slug'],
             is_published=True)
 
