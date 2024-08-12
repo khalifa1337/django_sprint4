@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils.html import mark_safe
 
 from core.constants import STANDART_MAX_LENGHT
-from core.models import PublishedModel, CreatedAtModel
+from core.models import CreatedAtModel, PublishedModel
 
 from .managers import PublishedPostManager
 from .querysets import PostQuerySet

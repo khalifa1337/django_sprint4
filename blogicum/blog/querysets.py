@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Count
 from django.utils import timezone
 
 
@@ -20,3 +21,6 @@ class PostQuerySet(models.QuerySet):
     def ordered_by_pub_date(self):
         """Сортировка постов по дате публикации (по убыванию)."""
         return self.order_by('-pub_date')
+
+    def with_comment_count(self):
+        return self.annotate(comment_count=Count('comment'))

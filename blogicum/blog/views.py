@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Count, Q
+from django.db.models.query import QuerySet
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.urls import reverse, reverse_lazy
@@ -74,8 +75,9 @@ class Index(ListView):
     model = Post
     queryset = (
         Post
-        .published.select_related('author', 'category', 'location')
-        .annotate(comment_count=Count('comment'))
+        .published
+        .with_comment_count()
+        .select_related('author', 'category', 'location')
     )
     paginate_by = ELEMENTS_TO_SHOW
 
@@ -95,26 +97,24 @@ class PostDetailView(CachedObjectMixin, DetailView):
 
     model = Post
     queryset = Post.objects.select_related('author', 'location', 'category')
+    pk_url_kwarg = 'post_id'
 
-    def get(self, request, *args, **kwargs):
+    def get_object(self, queryset=None):
         """
-        При получении запроса на страницу, если она скрыта, и пользователь -
-        не её автор, то выводим 404. С точки зрения индексов постов может
-        быть не совсем оправдано, однако тесты требуют такого подхода.
-        Также можно заменить (не учитывая тесты) на вызов 403 ошибки.
-        (Или handle_not_permission, но не уверен)
+        Переопределение метода get_object для проверки публикации
+        и авторства поста.
         """
-        self.object = self.get_object()
-        if not self.object.is_published and self.object.author != request.user:
+        obj = super().get_object(queryset)
+        if not obj.is_published and obj.author != self.request.user:
             raise Http404()
-        return super().get(request, *args, **kwargs)
+        return obj
 
     def get_context_data(self, **kwargs):
         """Добавление имеющихся комментариев на страницу публикации."""
-        context = super().get_context_data(**kwargs)
-        context['form'] = CommentForm()
-        context['comments'] = (
-            self.object.comment.select_related('author')
+        context = dict(
+            **super().get_context_data(**kwargs),
+            form=CommentForm(),
+            comments=self.object.comment.select_related('author')
         )
         return context
 
@@ -123,6 +123,7 @@ class PostUpdateView(PostMixin, OnlyAuthorMixin, UpdateView):
     """CBV для редактирования поста."""
 
     template_name = 'blog/create.html'
+    pk_url_kwarg = 'post_id'
 
     def handle_no_permission(self):
         """
@@ -131,7 +132,10 @@ class PostUpdateView(PostMixin, OnlyAuthorMixin, UpdateView):
         """
         return (
             HttpResponseRedirect(
-                reverse('blog:post_detail', kwargs={'pk': self.kwargs['pk']})
+                reverse(
+                    'blog:post_detail',
+                    kwargs={self.pk_url_kwarg: self.kwargs[self.pk_url_kwarg]}
+                )
             )
         )
 
@@ -141,7 +145,10 @@ class PostUpdateView(PostMixin, OnlyAuthorMixin, UpdateView):
         верно понимаю, логика вызовов разная. Из вариантов - вынести в другую
         функцию reverse, но по количеству кода выигрыша не будет.
         """
-        return reverse('blog:post_detail', kwargs={'pk': self.kwargs['pk']})
+        return reverse(
+            'blog:post_detail',
+            kwargs={self.pk_url_kwarg: self.kwargs[self.pk_url_kwarg]}
+        )
 
 
 class PostDeleteView(CachedObjectMixin, OnlyAuthorMixin, DeleteView):
@@ -149,26 +156,33 @@ class PostDeleteView(CachedObjectMixin, OnlyAuthorMixin, DeleteView):
 
     model = Post
     template_name = 'blog/create.html'
+    pk_url_kwarg = 'post_id'
+    form_class = PostForm
     success_url = reverse_lazy('blog:index')
 
 
 class CategoryListView(CachedObjectMixin, DetailView, MultipleObjectMixin):
     """CBV для отображения странциы отдельной категории"""
 
+    slug_url_kwarg = 'post_id'
     model = Category
     context_object_name = 'category'
     paginate_by = ELEMENTS_TO_SHOW
 
-    def get(self, request, *args, **kwargs):
-        """
-        В случае, если запрос на категорию, которая не опубликована -
-        выдаем 404. handle_not_pemrission может не подойти, так как
-        у категорий нет явного автора.
-        """
-        self.object = self.get_object()
-        if not self.object.is_published:
-            raise Http404()
-        return super().get(request, *args, **kwargs)
+    def get_object(self, queryset=None):
+        return get_object_or_404(
+            Category,
+            slug=self.kwargs['category_slug'],
+            is_published=True)
+
+    def get_queryset(self):
+        return (
+            Post
+            .published
+            .with_comment_count()
+            .select_related('author', 'category', 'location')
+            .filter(category__slug=self.kwargs['category_slug'])
+        )
 
     def get_context_data(self, **kwargs):
         """
@@ -176,14 +190,10 @@ class CategoryListView(CachedObjectMixin, DetailView, MultipleObjectMixin):
         Вернее, там вызывается count из-за, как я понимаю, annotate,
         но я не знаю, можно ли объединить в один запрос
         """
-        object_list = (
-            Post
-            .published
-            .filter(category=self.object)
-            .annotate(comment_count=Count('comment'))
-            .select_related('author', 'category', 'location')
+        context = super().get_context_data(
+            object_list=self.get_queryset(),
+            **kwargs
         )
-        context = super().get_context_data(object_list=object_list, **kwargs)
         return context
 
 
@@ -193,7 +203,7 @@ class CommentCreateView(CommentMixin, LoginRequiredMixin, CreateView):
     comment_post = None
 
     def dispatch(self, request, *args, **kwargs):
-        self.comment_post = get_object_or_404(Post, pk=kwargs['pk'])
+        self.comment_post = get_object_or_404(Post, pk=kwargs['post_id'])
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
@@ -202,7 +212,10 @@ class CommentCreateView(CommentMixin, LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse('blog:post_detail', kwargs={'pk': self.comment_post.pk})
+        return reverse(
+            'blog:post_detail',
+            kwargs={'post_id': self.comment_post.pk}
+        )
 
 
 class CommentUpdateView(
@@ -213,9 +226,13 @@ class CommentUpdateView(
 ):
     """CBV для изменения комментария"""
 
+    pk_url_kwarg = 'comment_id'
+
     def get_success_url(self):
         post_id = self.object.comment_post.id
-        return reverse_lazy('blog:post_detail', kwargs={'pk': post_id})
+        return reverse(
+            'blog:post_detail',
+            kwargs={'post_id': post_id})
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -226,6 +243,7 @@ class CommentDeleteView(CommentMixin, OnlyAuthorMixin, DeleteView):
     """CBV для удаления комментария."""
 
     template_name = 'blog/comment_form.html'
+    pk_url_kwarg = 'comment_id'
 
     def get_object(self, queryset=None):
         """
@@ -233,13 +251,15 @@ class CommentDeleteView(CommentMixin, OnlyAuthorMixin, DeleteView):
         функции обработки. Возможно, что есть более лаконичное решение.
         """
         post = self.kwargs['post_id']
-        comment = self.kwargs['comment_id']
+        comment = self.kwargs[self.pk_url_kwarg]
         obj = get_object_or_404(Comment, comment_post=post, id=comment)
         return obj
 
     def get_success_url(self):
         return (
-            reverse('blog:post_detail', kwargs={'pk': self.kwargs['post_id']})
+            reverse(
+                'blog:post_detail',
+                kwargs={'post_id': self.kwargs['post_id']})
         )
 
 
@@ -266,9 +286,9 @@ class UserProfileView(DetailView, MultipleObjectMixin):
             Post
             .objects
             .filter(filter_condition)
-            .annotate(comment_count=Count('comment'))
+            .with_comment_count()
             .select_related('author', 'category', 'location')
-            .order_by("-pub_date")
+            .ordered_by_pub_date()
         )
         """
         Так как список не всегда идентичен тому, что используется на других
@@ -284,7 +304,7 @@ class UserUpdateView(LoginRequiredMixin, UpdateView):
 
     model = User
     template_name = 'blog/user.html'
-    fields = ['username', 'first_name', 'last_name', 'email']
+    fields = ('username', 'first_name', 'last_name', 'email')
 
     def get_object(self, queryset=None):
         return self.request.user

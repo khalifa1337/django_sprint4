@@ -14,3 +14,6 @@ class PublishedPostManager(models.Manager):
             .category_published()
             .ordered_by_pub_date()
         )
+
+    def with_comment_count(self):
+        return self.get_queryset().with_comment_count()
