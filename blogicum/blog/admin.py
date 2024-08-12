@@ -37,7 +37,7 @@ class PostAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
         return queryset.with_comment_count()
-    
+
     @admin.display(description='Количество комментариев')
     def get_comment_count(self, obj):
         return obj.comment_count

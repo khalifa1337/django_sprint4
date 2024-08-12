@@ -1,7 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.urls import reverse
-from django.utils.html import mark_safe
 
 from core.constants import STANDART_MAX_LENGHT
 from core.models import CreatedAtModel, PublishedModel
